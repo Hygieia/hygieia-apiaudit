@@ -76,6 +76,7 @@ public class ArtifactEvaluatorTest {
     @Test
     public void test_Evaluate_NoActivity() {
         when(binaryArtifactRepository.findByCollectorItemIdAndTimestampIsBetweenOrderByTimestampDesc(any(ObjectId.class), any(Long.class), any(Long.class))).thenReturn(null);
+        when(apiSettings.getThirdPartyRegex()).thenReturn("(?i:.*third)");
         response = artifactEvaluator.evaluate(getCollectorItem("artifact", "/test", "repo", false), 125634536, 6235263, null);
         Assert.assertEquals(true, response.getAuditStatuses().toString().contains("NO_ACTIVITY"));
         Mockito.verify(binaryArtifactRepository, times(1)).findByCollectorItemIdAndTimestampIsBetweenOrderByTimestampDesc(any(ObjectId.class), any(Long.class), any(Long.class));
@@ -86,7 +87,7 @@ public class ArtifactEvaluatorTest {
     @Test
     public void test_Evaluate_ART_SYS_ACCT_BUILD_AUTO() {
         when(binaryArtifactRepository.findByCollectorItemIdAndTimestampIsBetweenOrderByTimestampDesc(any(ObjectId.class), any(Long.class), any(Long.class))).thenReturn(Stream.of(getBinaryArtifact(true,1565479975000L),getBinaryArtifact(true,1565393575000L)).collect(Collectors.toList()));
-        when(apiSettings.getServiceAccountRegEx()).thenReturn("/./g");
+        when(apiSettings.getThirdPartyRegex()).thenReturn("(?i:.*third)");
         response = artifactEvaluator.evaluate(getCollectorItem("artifact", "/test", "repo", false), 125634536, 6235263, null);
         Assert.assertEquals(true, response.getAuditStatuses().toString().contains("ART_SYS_ACCT_BUILD_AUTO"));
         Mockito.verify(binaryArtifactRepository, times(1)).findByCollectorItemIdAndTimestampIsBetweenOrderByTimestampDesc(any(ObjectId.class), any(Long.class), any(Long.class));
@@ -97,7 +98,7 @@ public class ArtifactEvaluatorTest {
     @Test
     public void test_Evaluate_ART_SYS_ACCT_BUILD_USER() {
         when(binaryArtifactRepository.findByCollectorItemIdAndTimestampIsBetweenOrderByTimestampDesc(any(ObjectId.class), any(Long.class), any(Long.class))).thenReturn(Stream.of(getBinaryArtifact(false,1565393575000L),getBinaryArtifact(false,1565479975000L)).collect(Collectors.toList()));
-        when(apiSettings.getServiceAccountRegEx()).thenReturn("/./g");
+        when(apiSettings.getThirdPartyRegex()).thenReturn("(?i:.*third)");
         response = artifactEvaluator.evaluate(getCollectorItem("artifact", "/test", "repo", false), 125634536, 6235263, null);
         Assert.assertEquals(true, response.getAuditStatuses().toString().contains("ART_SYS_ACCT_BUILD_USER"));
         Assert.assertEquals(true, response.getAuditEntity().toString().contains("artifactName"));
@@ -109,9 +110,10 @@ public class ArtifactEvaluatorTest {
     @Test
     public void test_Evaluate_ART_DOCK_IMG_FOUND() {
         when(binaryArtifactRepository.findByCollectorItemIdAndTimestampIsBetweenOrderByTimestampDesc(any(ObjectId.class), any(Long.class), any(Long.class))).thenReturn(Stream.of(getBinaryArtifact(false,1565393575000L),getBinaryArtifact(true,1565479975000L)).collect(Collectors.toList()));
-        when(apiSettings.getServiceAccountRegEx()).thenReturn("/./g");
-        response = artifactEvaluator.evaluate(getCollectorItem("artifact", "/test", "repo", false), 125634536, 6235263, null);
+        when(apiSettings.getThirdPartyRegex()).thenReturn("(?i:.*third)");
+        response = artifactEvaluator.evaluate(getCollectorItem("artifact", "/test", "artifact-third", false), 125634536, 6235263, null);
         Assert.assertEquals(true, response.getAuditStatuses().toString().contains("ART_DOCK_IMG_FOUND"));
+        Assert.assertEquals(true, response.getAuditStatuses().toString().contains("ART_SYS_ACCT_BUILD_THIRD_PARTY"));
         Mockito.verify(binaryArtifactRepository, times(1)).findByCollectorItemIdAndTimestampIsBetweenOrderByTimestampDesc(any(ObjectId.class), any(Long.class), any(Long.class));
         Assert.assertEquals(true, response.getAuditEntity().toString().contains("path"));
 
