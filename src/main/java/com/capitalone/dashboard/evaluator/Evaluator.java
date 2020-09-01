@@ -11,12 +11,10 @@ import com.capitalone.dashboard.model.Component;
 import com.capitalone.dashboard.repository.CollectorItemRepository;
 import com.capitalone.dashboard.repository.ComponentRepository;
 import com.capitalone.dashboard.repository.DashboardRepository;
-import com.google.common.collect.Lists;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.IterableUtils;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 import java.util.List;
@@ -51,20 +49,24 @@ public abstract class Evaluator<T> {
      */
     List<CollectorItem> getCollectorItems(Dashboard dashboard, CollectorType collectorType) {
         Optional<ObjectId> componentIdOpt = dashboard.getWidgets().stream().findFirst().map(Widget::getComponentId);
-        Optional<Component> componentOpt = componentIdOpt.isPresent() ? Optional.ofNullable(componentRepository.findOne(componentIdOpt.get())) : Optional.empty();
+        Optional<Component> componentOpt = componentIdOpt.flatMap(objectId -> componentRepository.findById(objectId));
         // This collector items from component is stale. So, need the id's to look up current state of collector items.
         List<ObjectId> collectorItemIds = componentOpt.map(component ->
                 component.getCollectorItems(collectorType).stream().map(CollectorItem::getId).collect(Collectors.toList())).orElse(Collections.emptyList());
-        return CollectionUtils.isNotEmpty(collectorItemIds) ? IterableUtils.toList(collectorItemRepository.findAll(collectorItemIds)) : Collections.emptyList();
+        List<CollectorItem> collectorItems = new ArrayList<>();
+        collectorItemIds.forEach(id -> collectorItemRepository.findById(id).ifPresent(collectorItems::add));
+        return collectorItems;
     }
 
     List<CollectorItem> getCollectorItems(Dashboard dashboard, CollectorType collectorType, String testType) {
         Optional<ObjectId> componentIdOpt = dashboard.getWidgets().stream().findFirst().map(Widget::getComponentId);
-        Optional<Component> componentOpt = componentIdOpt.isPresent() ? Optional.ofNullable(componentRepository.findOne(componentIdOpt.get())) : Optional.empty();
+        Optional<Component> componentOpt = componentIdOpt.flatMap(objectId -> componentRepository.findById(objectId));
         // This collector items from component is stale. So, need the id's to look up current state of collector items.
         List<ObjectId> collectorItemIds = componentOpt.map(component ->
                 component.getCollectorItems(collectorType).stream().filter(c -> isEqualsTestType(c,testType)).map(CollectorItem::getId).collect(Collectors.toList())).orElse(Collections.emptyList());
-        return CollectionUtils.isNotEmpty(collectorItemIds) ? IterableUtils.toList(collectorItemRepository.findAll(collectorItemIds)) : Collections.emptyList();
+        List<CollectorItem> collectorItems = new ArrayList<>();
+        collectorItemIds.forEach(id -> collectorItemRepository.findById(id).ifPresent(collectorItems::add));
+        return collectorItems;
     }
 
     private boolean isEqualsTestType(CollectorItem c,String testType) {

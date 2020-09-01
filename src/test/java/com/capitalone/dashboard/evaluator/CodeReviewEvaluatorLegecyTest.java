@@ -245,6 +245,7 @@ public class CodeReviewEvaluatorLegecyTest {
 
     private CollectorItem makeCollectorItem(int lastUpdated, String branch){
         CollectorItem item = new CollectorItem();
+        item.setId(ObjectId.get());
         item.setCollectorId(ObjectId.get());
         item.setEnabled(true);
         item.setPushed(true);

@@ -6,7 +6,8 @@ import com.capitalone.dashboard.repository.RequestLogRepository;
 import com.mongodb.util.JSON;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
@@ -50,7 +51,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 @Component
 public class LoggingFilter implements Filter {
 
-    private static final Logger LOGGER = Logger.getLogger(LoggingFilter.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggingFilter.class);
 
     @Autowired
     private RequestLogRepository requestLogRepository;

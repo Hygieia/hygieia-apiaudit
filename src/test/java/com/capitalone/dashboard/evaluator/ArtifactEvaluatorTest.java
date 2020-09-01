@@ -120,6 +120,7 @@ public class ArtifactEvaluatorTest {
 
     private CollectorItem getCollectorItem(String artifactName, String path, String repoName, boolean isError) {
         CollectorItem ci = new CollectorItem();
+        ci.setId(new ObjectId("5d64389854ce51174a220125"));
         ci.getOptions().put("artifactName", artifactName);
         ci.getOptions().put("path", path);
         ci.getOptions().put("repoName", repoName);
