@@ -55,7 +55,7 @@
     <properties>
         <repository.name>hygieia-apiaudit</repository.name>
         <java.version>11</java.version>
-        <com.capitalone.dashboard.hygieia-common.version>4.0.5-SNAPSHOT</com.capitalone.dashboard.hygieia-common.version>
+        <com.capitalone.dashboard.hygieia-common.version>4.0.5</com.capitalone.dashboard.hygieia-common.version>
         <bc.version>3.0.2</bc.version>
         <application.version.number>${version}</application.version.number>
         <apache.rat.plugin.version>0.13</apache.rat.plugin.version>
