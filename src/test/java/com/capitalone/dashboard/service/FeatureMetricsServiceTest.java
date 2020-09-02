@@ -1,7 +1,7 @@
 package com.capitalone.dashboard.service;
 
 import com.capitalone.dashboard.common.TestUtils;
-import com.capitalone.dashboard.config.FongoConfig;
+import com.capitalone.dashboard.config.MongoServerConfig;
 import com.capitalone.dashboard.config.TestConfig;
 import com.capitalone.dashboard.model.ExecutiveFeatureMetrics;
 import com.capitalone.dashboard.model.ComponentFeatureMetrics;
@@ -26,7 +26,7 @@ import java.util.List;
 
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {TestConfig.class, FongoConfig.class})
+@ContextConfiguration(classes = {TestConfig.class, MongoServerConfig.class})
 @DirtiesContext
 public class FeatureMetricsServiceTest {
 
@@ -48,7 +48,6 @@ public class FeatureMetricsServiceTest {
     @Autowired
     private CollectorItemRepository collectorItemRepository;
 
-
     @Autowired
     private FeatureMetricsService featureMetricsService;
 
@@ -59,9 +58,9 @@ public class FeatureMetricsServiceTest {
     private BuildRepository buildRepository;
 
 
-
     @Before
     public void loadStuff() throws IOException {
+        cleanDb();
         TestUtils.loadDashBoard(dashboardRepository);
         TestUtils.loadComponent(componentRepository);
         TestUtils.loadSSCRequests(codeQualityRepository);
@@ -71,7 +70,17 @@ public class FeatureMetricsServiceTest {
         TestUtils.loadFeature(featureRepository);
         TestUtils.loadCmdb(cmdbRepository);
         TestUtils.loadBuilds(buildRepository);
+    }
 
+    private void cleanDb() {
+        dashboardRepository.deleteAll();
+        componentRepository.deleteAll();
+        codeQualityRepository.deleteAll();
+        testResultsRepository.deleteAll();
+        collectorItemRepository.deleteAll();
+        featureRepository.deleteAll();
+        cmdbRepository.deleteAll();
+        buildRepository.deleteAll();
     }
 
     @Test

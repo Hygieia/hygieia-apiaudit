@@ -11,6 +11,7 @@ import com.capitalone.dashboard.model.TestSuite;
 import com.capitalone.dashboard.model.Widget;
 import com.capitalone.dashboard.model.Feature;
 
+import com.capitalone.dashboard.repository.CollectorItemRepository;
 import com.capitalone.dashboard.repository.FeatureRepository;
 import com.capitalone.dashboard.repository.TestResultRepository;
 import com.capitalone.dashboard.response.TestResultsAuditResponse;
@@ -52,12 +53,8 @@ public class RegressionTestResultEvaluatorTest {
 
     @Test
     public void evaluate_testResultMissing(){
-        CollectorItem collectorItem = new CollectorItem();
-        collectorItem.setId(ObjectId.get());
-
+        CollectorItem collectorItem = makeCollectorItem();
         List<TestResult> emptyTestResults = new ArrayList<>();
-        when(testResultRepository.findByCollectorItemIdAndTimestampIsBetweenOrderByTimestampDesc(collectorItem.getId(),
-                123456789, 123456989)).thenReturn(emptyTestResults);
         TestResultsAuditResponse testResultsAuditResponse = regressionTestResultEvaluator.getRegressionTestResultAudit(getDashboard(), collectorItem);
         Assert.assertTrue(testResultsAuditResponse.getAuditStatuses().contains(TestResultAuditStatus.TEST_RESULT_MISSING));
         Assert.assertTrue(!testResultsAuditResponse.getAuditStatuses().contains(TestResultAuditStatus.TEST_RESULT_AUDIT_OK));
@@ -67,12 +64,10 @@ public class RegressionTestResultEvaluatorTest {
 
     @Test
     public void evaluate_testResultAuditOK(){
-        CollectorItem collectorItem = new CollectorItem();
-        collectorItem.setId(ObjectId.get());
+        CollectorItem collectorItem = makeCollectorItem();
         List<TestResult> testResults = Arrays.asList(getAuditOKTestResult());
         when(testResultRepository.findByCollectorItemIdAndTimestampIsBetweenOrderByTimestampDesc(any(ObjectId.class),
                 any(Long.class), any(Long.class))).thenReturn(testResults);
-        when(featureRepository.getStoryByTeamID("TEST-1234")).thenReturn(Arrays.asList(new Feature()));
         TestResultsAuditResponse testResultsAuditResponse = regressionTestResultEvaluator.getRegressionTestResultAudit(getDashboard(), collectorItem);
         Assert.assertTrue(!testResultsAuditResponse.getAuditStatuses().contains(TestResultAuditStatus.TEST_RESULT_MISSING));
         Assert.assertTrue(testResultsAuditResponse.getAuditStatuses().contains(TestResultAuditStatus.TEST_RESULT_AUDIT_OK));
@@ -82,12 +77,10 @@ public class RegressionTestResultEvaluatorTest {
 
     @Test
     public void evaluate_testResultAuditFAIL(){
-        CollectorItem collectorItem = new CollectorItem();
-        collectorItem.setId(ObjectId.get());
+        CollectorItem collectorItem = makeCollectorItem();
         List<TestResult> testResults = Arrays.asList(getAuditFAILTestResult());
         when(testResultRepository.findByCollectorItemIdAndTimestampIsBetweenOrderByTimestampDesc(any(ObjectId.class),
                 any(Long.class), any(Long.class))).thenReturn(testResults);
-        when(featureRepository.getStoryByTeamID("TEST-1234")).thenReturn(Arrays.asList(new Feature()));
         TestResultsAuditResponse testResultsAuditResponse = regressionTestResultEvaluator.getRegressionTestResultAudit(getDashboard(), collectorItem);
         Assert.assertTrue(!testResultsAuditResponse.getAuditStatuses().contains(TestResultAuditStatus.TEST_RESULT_MISSING));
         Assert.assertTrue(!testResultsAuditResponse.getAuditStatuses().contains(TestResultAuditStatus.TEST_RESULT_AUDIT_OK));
@@ -97,12 +90,10 @@ public class RegressionTestResultEvaluatorTest {
 
     @Test
     public void evaluate_testResultAuditSKIP(){
-        CollectorItem collectorItem = new CollectorItem();
-        collectorItem.setId(ObjectId.get());
+        CollectorItem collectorItem = makeCollectorItem();
         List<TestResult> testResults = Arrays.asList(getAuditSKIPTestResult());
         when(testResultRepository.findByCollectorItemIdAndTimestampIsBetweenOrderByTimestampDesc(any(ObjectId.class),
                 any(Long.class), any(Long.class))).thenReturn(testResults);
-        when(featureRepository.getStoryByTeamID("TEST-1234")).thenReturn(Arrays.asList(new Feature()));
         TestResultsAuditResponse testResultsAuditResponse = regressionTestResultEvaluator.getRegressionTestResultAudit(getDashboard(), collectorItem);
         Assert.assertTrue(!testResultsAuditResponse.getAuditStatuses().contains(TestResultAuditStatus.TEST_RESULT_MISSING));
         Assert.assertTrue(!testResultsAuditResponse.getAuditStatuses().contains(TestResultAuditStatus.TEST_RESULT_AUDIT_OK));
@@ -210,5 +201,11 @@ public class RegressionTestResultEvaluatorTest {
         settings.setTestResultSkippedPriority("High");
         settings.setTestResultThreshold(95.0);
         return settings;
+    }
+
+    private CollectorItem makeCollectorItem() {
+        CollectorItem item = new CollectorItem();
+        item.setId(ObjectId.get());
+        return item;
     }
 }

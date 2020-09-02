@@ -105,7 +105,7 @@ public class PerformanceTestResultEvaluatorTest {
 
     @Test
     public void evaluate_PerfRiskAssessmentStatuses_High(){
-        CollectorItem dummyCollectorItem = new CollectorItem();
+        CollectorItem dummyCollectorItem = makeCollectorItem(132313123);
         TestResult testResult = makeTestResult("KPI : Transaction Per Second","Success").get(0);
         testResult.setTestCapabilities(null);
         testResult.setPerfRisk("High");
@@ -136,6 +136,7 @@ public class PerformanceTestResultEvaluatorTest {
 
     private CollectorItem makeCollectorItem(int lastUpdated) {
         CollectorItem item = new CollectorItem();
+        item.setId(ObjectId.get());
         item.setCollectorId(ObjectId.get());
         item.setEnabled(true);
         item.getOptions().put("jobName", "testHygieiaPerf");

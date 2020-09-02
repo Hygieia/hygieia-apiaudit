@@ -9,6 +9,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 @Component
 public class AuditResultServiceImpl implements AuditResultService{
 
@@ -22,7 +24,8 @@ public class AuditResultServiceImpl implements AuditResultService{
 
     @Override
     public AuditResult getAuditResult(ObjectId id){
-        return auditResultRepository.findById(id);
+        Optional<AuditResult> opt = auditResultRepository.findById(id);
+        return opt.orElse(null);
     }
 
     @Override

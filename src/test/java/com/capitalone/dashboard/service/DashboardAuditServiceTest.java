@@ -2,7 +2,7 @@ package com.capitalone.dashboard.service;
 
 import com.capitalone.dashboard.ApiSettings;
 import com.capitalone.dashboard.common.TestUtils;
-import com.capitalone.dashboard.config.FongoConfig;
+import com.capitalone.dashboard.config.MongoServerConfig;
 import com.capitalone.dashboard.config.TestConfig;
 import com.capitalone.dashboard.mapper.ObjectIdSerializer;
 import com.capitalone.dashboard.model.AuditException;
@@ -39,7 +39,6 @@ import com.capitalone.dashboard.testutil.GsonUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.github.fakemongo.junit.FongoRule;
 import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 import com.google.gson.Gson;
@@ -49,7 +48,6 @@ import org.apache.commons.io.IOUtils;
 import org.bson.types.ObjectId;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,7 +60,6 @@ import java.net.URL;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.IntStream;
@@ -71,26 +68,26 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {TestConfig.class, FongoConfig.class})
+@ContextConfiguration(classes = {TestConfig.class, MongoServerConfig.class})
 @DirtiesContext
-
 public class DashboardAuditServiceTest {
     @Autowired
     private DashboardRepository dashboardRepository;
+
     @Autowired
     private ComponentRepository componentRepository;
+
     @Autowired
     private CollectorRepository collectorRepository;
+
     @Autowired
     private CollectorItemRepository collectorItemRepository;
 
     @Autowired
     private GitRequestRepository gitRequestRepository;
+
     @Autowired
     private CommitRepository commitRepository;
-
-    @Rule
-    public FongoRule fongoRule = new FongoRule();
 
     @Autowired
     private CodeReviewAuditService codeReviewAuditService;
@@ -131,6 +128,7 @@ public class DashboardAuditServiceTest {
         TestUtils.loadFeature(featureRepository);
         TestUtils.loadArtifacts(binaryArtifactRepository);
         apiSettings.setServiceAccountRegEx("/./g");
+        apiSettings.setThirdPartyRegex("(?i:.*third)");
     }
 
     @Test

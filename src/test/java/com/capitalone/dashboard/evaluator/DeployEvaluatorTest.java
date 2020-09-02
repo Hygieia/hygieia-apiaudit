@@ -224,6 +224,7 @@ public class DeployEvaluatorTest {
 
     private CollectorItem getCollectorItem(String jobName, String jobUrl, boolean isError) {
         CollectorItem ci = new CollectorItem();
+        ci.setId(ObjectId.get());
         ci.setLastUpdated(125634537);
         ci.getOptions().put("jobName", jobName);
         ci.getOptions().put("jobUrl", jobUrl);

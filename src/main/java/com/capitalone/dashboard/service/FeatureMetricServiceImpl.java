@@ -32,7 +32,6 @@ import com.capitalone.dashboard.repository.ComponentRepository;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.math.NumberUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -690,10 +689,10 @@ public class FeatureMetricServiceImpl implements FeatureMetricsService {
         ObjectId componentId = widgets.stream().filter(widget -> widget.getName().equalsIgnoreCase(widgetName)).findFirst().map(Widget::getComponentId).orElse(null);
 
         if (null == componentId) return null;
+        Optional<com.capitalone.dashboard.model.Component> componentOpt = componentRepository.findById(componentId);
 
-        com.capitalone.dashboard.model.Component component = componentRepository.findOne(componentId);
-
-        List<CollectorItem> listFromComponent = component.getCollectorItems().get(collectorType);
+        if (componentOpt.isEmpty()) return null;
+        List<CollectorItem> listFromComponent = componentOpt.get().getCollectorItems().get(collectorType);
 
         if (CollectionUtils.isEmpty(listFromComponent)) {
             return null;

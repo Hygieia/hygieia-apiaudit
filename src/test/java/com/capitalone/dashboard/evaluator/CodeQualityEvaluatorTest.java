@@ -45,7 +45,6 @@ public class CodeQualityEvaluatorTest {
     @Test
     public void testEvalatefor_COLLECTOR_ITEM_ERROR(){
         List<CodeQuality> codeQualities = makeCodeQualityGateDetailsFoundAuditFAIL("cloud-service-parent");
-        when(codeQualityRepository.findByCollectorItemIdAndTimestampIsBetweenOrderByTimestampDesc(any(ObjectId.class),any(Long.class),any(Long.class))).thenReturn(codeQualities);
 
         CodeQualityAuditResponse response = codeQualityEvaluator.evaluate(createCollectorItem1(0),125634536, 6235263, null);
 
@@ -60,7 +59,6 @@ public class CodeQualityEvaluatorTest {
         List<CodeQuality> codeQualities = makeCodeQualityGateDetailsMetricNotFound("cloud-service-parent");
 
         when(codeQualityRepository.findByCollectorItemIdAndTimestampIsBetweenOrderByTimestampDesc(any(ObjectId.class),any(Long.class),any(Long.class))).thenReturn(codeQualities);
-        when(collItemConfigHistoryRepository.findByCollectorItemIdAndTimestampIsBetweenOrderByTimestampDesc(any(ObjectId.class),any(Long.class),any(Long.class))).thenReturn(null);
 
         CodeQualityAuditResponse response = codeQualityEvaluator.evaluate(createCollectorItem(100),125634536, 6235263, null);
 
@@ -78,7 +76,6 @@ public class CodeQualityEvaluatorTest {
         List<CodeQuality> codeQualities = makeCodeQualityGateDetailsFoundAuditFAIL("cloud-service-parent");
 
         when(codeQualityRepository.findByCollectorItemIdAndTimestampIsBetweenOrderByTimestampDesc(any(ObjectId.class),any(Long.class),any(Long.class))).thenReturn(codeQualities);
-        when(collItemConfigHistoryRepository.findByCollectorItemIdAndTimestampIsBetweenOrderByTimestampDesc(any(ObjectId.class),any(Long.class),any(Long.class))).thenReturn(null);
 
         CodeQualityAuditResponse response = codeQualityEvaluator.evaluate(createCollectorItem(100),125634536, 6235263, null);
 
@@ -99,7 +96,6 @@ public class CodeQualityEvaluatorTest {
         List<CodeQuality> codeQualities = makeCodeQualityOk("cloud-service-parent");
 
         when(codeQualityRepository.findByCollectorItemIdAndTimestampIsBetweenOrderByTimestampDesc(any(ObjectId.class),any(Long.class),any(Long.class))).thenReturn(codeQualities);
-        when(collItemConfigHistoryRepository.findByCollectorItemIdAndTimestampIsBetweenOrderByTimestampDesc(any(ObjectId.class),any(Long.class),any(Long.class))).thenReturn(null);
 
         CodeQualityAuditResponse response = codeQualityEvaluator.evaluate(createCollectorItem(100),125634536, 6235263, null);
         Assert.assertEquals(true, response.getAuditStatuses().toString().contains("CODE_QUALITY_THRESHOLD_CRITICAL_FOUND"));
@@ -119,7 +115,6 @@ public class CodeQualityEvaluatorTest {
         List<CodeQuality> codeQualities = makeCodeQualityFail("cloud-service-parent");
 
         when(codeQualityRepository.findByCollectorItemIdAndTimestampIsBetweenOrderByTimestampDesc(any(ObjectId.class),any(Long.class),any(Long.class))).thenReturn(codeQualities);
-        when(collItemConfigHistoryRepository.findByCollectorItemIdAndTimestampIsBetweenOrderByTimestampDesc(any(ObjectId.class),any(Long.class),any(Long.class))).thenReturn(null);
 
         CodeQualityAuditResponse response = codeQualityEvaluator.evaluate(createCollectorItem(100),125634536, 6235263, null);
         Assert.assertEquals(true, response.getAuditStatuses().toString().contains("CODE_QUALITY_THRESHOLD_CRITICAL_FOUND"));
@@ -147,6 +142,7 @@ public class CodeQualityEvaluatorTest {
 
     private CollectorItem createCollectorItem(int projectId) {
         CollectorItem items = new CollectorItem();
+        items.setId(ObjectId.get());
         items.setCollectorId(ObjectId.get());
         items.setEnabled(true);
         items.getOptions().put("jobName", "testHygieiaCodeQuality");

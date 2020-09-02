@@ -6,7 +6,7 @@ import com.capitalone.dashboard.config.WebMVCConfig;
 import com.ulisesbocchio.jasyptspringboot.annotation.EnableEncryptableProperties;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
-import org.springframework.boot.context.web.SpringBootServletInitializer;
+import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 import org.springframework.context.annotation.Bean;
 import springfox.documentation.builders.ApiInfoBuilder;
 import springfox.documentation.builders.RequestHandlerSelectors;
@@ -28,6 +28,7 @@ import static springfox.documentation.builders.PathSelectors.regex;
 public class Application extends SpringBootServletInitializer {
     @Override
     protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
+        System.setProperty("server.servlet.context-path", "/apiaudit");
         return application.sources(Application.class, RestApiAppConfig.class, WebMVCConfig.class, MongoConfig.class);
     }
     
