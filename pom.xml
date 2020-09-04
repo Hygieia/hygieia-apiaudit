@@ -60,7 +60,7 @@
         <application.version.number>${version}</application.version.number>
         <apache.rat.plugin.version>0.13</apache.rat.plugin.version>
         <coveralls.maven.plugin.version>4.3.0</coveralls.maven.plugin.version>
-        <guava.version>19.0</guava.version>
+        <guava.version>29.0-jre</guava.version>
         <jacoco.maven.plugin.version>0.8.3</jacoco.maven.plugin.version>
         <jacoco.coverage.percentage.minimum>0.01</jacoco.coverage.percentage.minimum>
         <jacoco.classes.missed.minimum>300</jacoco.classes.missed.minimum>
