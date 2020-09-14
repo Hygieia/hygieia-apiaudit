@@ -47,15 +47,15 @@
     </organization>
 
     <parent>
-        <groupId>com.capitalone.dashboard</groupId>
-        <artifactId>hygieia-pom</artifactId>
-        <version>4.0.2</version>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-parent</artifactId>
+        <version>2.2.9.RELEASE</version>
     </parent>
 
     <properties>
         <repository.name>hygieia-apiaudit</repository.name>
         <java.version>11</java.version>
-        <com.capitalone.dashboard.hygieia-common.version>4.0.6</com.capitalone.dashboard.hygieia-common.version>
+        <com.capitalone.dashboard.hygieia-common.version>4.0.5-SNAPSHOT</com.capitalone.dashboard.hygieia-common.version>
         <bc.version>3.0.2</bc.version>
         <application.version.number>${version}</application.version.number>
         <apache.rat.plugin.version>0.13</apache.rat.plugin.version>
@@ -208,6 +208,7 @@
         <dependency>
             <groupId>joda-time</groupId>
             <artifactId>joda-time</artifactId>
+            <version>${joda-time.version}</version>
         </dependency>
         <dependency>
             <groupId>com.jayway.jsonpath</groupId>
@@ -332,6 +333,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>2.3.3.RELEASE</version>
                 <executions>
                     <execution>
                         <goals>

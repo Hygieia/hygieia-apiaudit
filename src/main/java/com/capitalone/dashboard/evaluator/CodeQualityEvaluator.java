@@ -128,11 +128,11 @@ public class CodeQualityEvaluator extends Evaluator<CodeQualityAuditResponse> {
                     // this applies for sonar 6.7 style data for quality_gate_details. Sets CODE_QUALITY_AUDIT_OK if Status is Ok/Warning
                     TypeReference<HashMap<String, Object>> typeRef = new TypeReference<HashMap<String, Object>>() {
                     };
-                    Map<String, String> values;
+                    Map<String, Object> values;
                     try {
                         values = mapper.readValue((String) metric.getValue(), typeRef);
                         if (MapUtils.isNotEmpty(values) && values.containsKey("level")) {
-                            String level = values.get("level");
+                            String level = (String) values.get("level");
                             codeQualityAuditResponse.addAuditStatus((level.equalsIgnoreCase("Ok") || level.equalsIgnoreCase("WARN"))? CodeQualityAuditStatus.CODE_QUALITY_AUDIT_OK : CodeQualityAuditStatus.CODE_QUALITY_AUDIT_FAIL);
                         }
 
@@ -208,11 +208,13 @@ public class CodeQualityEvaluator extends Evaluator<CodeQualityAuditResponse> {
         detailsMissing.addAuditStatus(CodeQualityAuditStatus.CODE_QUALITY_DETAIL_MISSING);
         detailsMissing.setLastUpdated(codeQualityCollectorItem.getLastUpdated());
         detailsMissing.setAuditEntity(codeQualityCollectorItem.getOptions());
-        List<CodeQuality> codeQualities = codeQualityRepository.findByCollectorItemIdOrderByTimestampDesc(codeQualityCollectorItem.getId());
-        for(CodeQuality returnCodeQuality:codeQualities) {
-            detailsMissing.setUrl(returnCodeQuality.getUrl());
-            detailsMissing.setName(returnCodeQuality.getName());
-            detailsMissing.setLastExecutionTime(returnCodeQuality.getTimestamp());
+        Optional<CodeQuality> codeQualityOpt = Optional.ofNullable(
+                codeQualityRepository.findTop1ByCollectorItemIdOrderByTimestampDesc(codeQualityCollectorItem.getId()));
+        if (codeQualityOpt.isPresent()) {
+            CodeQuality codeQuality = codeQualityOpt.get();
+            detailsMissing.setUrl(codeQuality.getUrl());
+            detailsMissing.setName(codeQuality.getName());
+            detailsMissing.setLastExecutionTime(codeQuality.getTimestamp());
         }
         return detailsMissing;
     }
