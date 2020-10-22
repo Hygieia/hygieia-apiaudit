@@ -1,51 +1,49 @@
 package com.capitalone.dashboard.service;
 
 import com.capitalone.dashboard.ApiSettings;
-import com.capitalone.dashboard.model.ComponentFeatureMetrics;
-import com.capitalone.dashboard.model.Feature;
-import com.capitalone.dashboard.model.Dashboard;
-import com.capitalone.dashboard.model.DashboardType;
-import com.capitalone.dashboard.model.ProductFeatureMetrics;
-import com.capitalone.dashboard.model.Cmdb;
-import com.capitalone.dashboard.model.CodeQuality;
-import com.capitalone.dashboard.model.CollectorItem;
-import com.capitalone.dashboard.model.TestResult;
-import com.capitalone.dashboard.model.TestSuiteType;
-import com.capitalone.dashboard.model.TestCase;
-import com.capitalone.dashboard.model.TestCapability;
-import com.capitalone.dashboard.model.LobFeatureMetrics;
-import com.capitalone.dashboard.model.ExecutiveFeatureMetrics;
-import com.capitalone.dashboard.model.CollectorType;
 import com.capitalone.dashboard.model.Build;
 import com.capitalone.dashboard.model.BuildStage;
-import com.capitalone.dashboard.model.Widget;
-import com.capitalone.dashboard.model.TestSuite;
+import com.capitalone.dashboard.model.Cmdb;
+import com.capitalone.dashboard.model.CodeQuality;
 import com.capitalone.dashboard.model.CodeQualityMetric;
-
-import com.capitalone.dashboard.repository.TestResultRepository;
+import com.capitalone.dashboard.model.CollectorItem;
+import com.capitalone.dashboard.model.CollectorType;
+import com.capitalone.dashboard.model.ComponentFeatureMetrics;
+import com.capitalone.dashboard.model.Dashboard;
+import com.capitalone.dashboard.model.DashboardType;
+import com.capitalone.dashboard.model.ExecutiveFeatureMetrics;
+import com.capitalone.dashboard.model.Feature;
+import com.capitalone.dashboard.model.LobFeatureMetrics;
+import com.capitalone.dashboard.model.ProductFeatureMetrics;
+import com.capitalone.dashboard.model.TestCapability;
+import com.capitalone.dashboard.model.TestCase;
+import com.capitalone.dashboard.model.TestResult;
+import com.capitalone.dashboard.model.TestSuite;
+import com.capitalone.dashboard.model.TestSuiteType;
+import com.capitalone.dashboard.model.Widget;
+import com.capitalone.dashboard.repository.BuildRepository;
 import com.capitalone.dashboard.repository.CmdbRepository;
 import com.capitalone.dashboard.repository.CodeQualityRepository;
-import com.capitalone.dashboard.repository.DashboardRepository;
-import com.capitalone.dashboard.repository.BuildRepository;
-import com.capitalone.dashboard.repository.FeatureRepository;
 import com.capitalone.dashboard.repository.ComponentRepository;
-
+import com.capitalone.dashboard.repository.DashboardRepository;
+import com.capitalone.dashboard.repository.FeatureRepository;
+import com.capitalone.dashboard.repository.TestResultRepository;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.math.NumberUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.text.DecimalFormat;
-import java.util.List;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Collection;
-import java.util.Set;
-import java.util.Optional;
-import java.util.DoubleSummaryStatistics;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.DoubleSummaryStatistics;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -282,17 +280,17 @@ public class FeatureMetricServiceImpl implements FeatureMetricsService {
         List<ComponentFeatureMetrics> productComponent = new ArrayList<>();
         Optional.ofNullable(components).orElseGet(Collections::emptyList)
                 .stream().forEach(component -> {
-                    ComponentFeatureMetrics featureMetrics = getComponentFeatureMetricByType(component,type);
-                    productComponent.add(featureMetrics);
-                    Optional.ofNullable(featureMetrics.getMetrics()).orElseGet(Collections ::emptyList).stream().forEach(metric-> {
-                        if(metric.containsKey(type)){
-                            Optional<HashMap<String,String>> percent = Optional.of((HashMap<String, String>) metric.get(type));
-                            if(percent.get().containsKey(STR_PERCENTAGE)){
-                                percentages.add(Double.parseDouble(percent.get().get(STR_PERCENTAGE)));
-                            }
-                        }
-                    });
-                });
+            ComponentFeatureMetrics featureMetrics = getComponentFeatureMetricByType(component,type);
+            productComponent.add(featureMetrics);
+            Optional.ofNullable(featureMetrics.getMetrics()).orElseGet(Collections ::emptyList).stream().forEach(metric-> {
+                if(metric.containsKey(type)){
+                    Optional<HashMap<String,String>> percent = Optional.of((HashMap<String, String>) metric.get(type));
+                    if(percent.get().containsKey(STR_PERCENTAGE)){
+                        percentages.add(Double.parseDouble(percent.get().get(STR_PERCENTAGE)));
+                    }
+                }
+            });
+        });
         List<Double> actualPercentage = new ArrayList<>();
         percentages.forEach(percentage -> {
             if(!percentage.equals(Double.NaN)){
@@ -431,32 +429,32 @@ public class FeatureMetricServiceImpl implements FeatureMetricsService {
 
         List<String> totalCompletedList = new ArrayList<>();
 
-            if(CollectionUtils.isNotEmpty(testItems)){
-                if(teamIdOpt.isPresent()){
+        if(CollectionUtils.isNotEmpty(testItems)){
+            if(teamIdOpt.isPresent()){
                 List<Feature> featureList = featureRepository.getStoryByTeamID(teamIdOpt.get().toString());
                 if(CollectionUtils.isNotEmpty(featureList))
-                featureList.stream().forEach(feature -> {
-                    if(this.isValidStoryStatus(feature.getsStatus())){
-                        totalCompletedList.add(feature.getsNumber());}});}
-                testItems.forEach(collectorItemId -> {
-                    TestResult testResults = testResultRepository.findTop1ByCollectorItemIdOrderByTimestampDesc(collectorItemId);
-                    if((testResults != null) && (testResults.getType().equals(TestSuiteType.Functional))){
+                    featureList.stream().forEach(feature -> {
+                        if(this.isValidStoryStatus(feature.getsStatus())){
+                            totalCompletedList.add(feature.getsNumber());}});}
+            testItems.forEach(collectorItemId -> {
+                TestResult testResults = testResultRepository.findTop1ByCollectorItemIdOrderByTimestampDesc(collectorItemId);
+                if((testResults != null) && (testResults.getType().equals(TestSuiteType.Functional))){
 
-                         values.add((double) getTotalStoryIndicators(testResults).size());
-                    }
-                });
-                if(totalCompletedList.size()> NumberUtils.INTEGER_ZERO) {
-                    double traceabilityPercentage = (values.size() * 100) / totalCompletedList.size();
-                    featureTestPercent.put(STR_PERCENTAGE, String.valueOf(df2.format(traceabilityPercentage)));
-                    traceability.put(STR_TRACEABILITY, featureTestPercent);
-                }else {
-                    featureTestPercent.put("message", "Traceability Not Found");
-                    traceability.put(STR_TRACEABILITY, featureTestPercent);
+                    values.add((double) getTotalStoryIndicators(testResults).size());
                 }
+            });
+            if(totalCompletedList.size()> NumberUtils.INTEGER_ZERO) {
+                double traceabilityPercentage = (values.size() * 100) / totalCompletedList.size();
+                featureTestPercent.put(STR_PERCENTAGE, String.valueOf(df2.format(traceabilityPercentage)));
+                traceability.put(STR_TRACEABILITY, featureTestPercent);
             }else {
-                featureTestPercent.put("message","TestItems not configured");
-                traceability.put(STR_TRACEABILITY,featureTestPercent);
+                featureTestPercent.put("message", "Traceability Not Found");
+                traceability.put(STR_TRACEABILITY, featureTestPercent);
             }
+        }else {
+            featureTestPercent.put("message","TestItems not configured");
+            traceability.put(STR_TRACEABILITY,featureTestPercent);
+        }
         return traceability;
     }
 
@@ -689,10 +687,10 @@ public class FeatureMetricServiceImpl implements FeatureMetricsService {
         ObjectId componentId = widgets.stream().filter(widget -> widget.getName().equalsIgnoreCase(widgetName)).findFirst().map(Widget::getComponentId).orElse(null);
 
         if (null == componentId) return null;
-        Optional<com.capitalone.dashboard.model.Component> componentOpt = componentRepository.findById(componentId);
 
-        if (componentOpt.isEmpty()) return null;
-        List<CollectorItem> listFromComponent = componentOpt.get().getCollectorItems().get(collectorType);
+        com.capitalone.dashboard.model.Component component = componentRepository.findOne(componentId);
+
+        List<CollectorItem> listFromComponent = component.getCollectorItems().get(collectorType);
 
         if (CollectionUtils.isEmpty(listFromComponent)) {
             return null;

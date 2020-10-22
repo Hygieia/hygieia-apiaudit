@@ -10,7 +10,7 @@ public class FongoConfig extends MongoConfig {
     public MongoClient mongo()  {
         return new Fongo(getDatabaseName()).getMongo();
     }
-    
+
     @Override
     protected String getDatabaseName() {
         return "test-db";

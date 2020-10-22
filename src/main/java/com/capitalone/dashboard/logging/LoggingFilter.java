@@ -4,6 +4,7 @@ import com.capitalone.dashboard.ApiSettings;
 import com.capitalone.dashboard.model.AuditRequestLog;
 import com.capitalone.dashboard.repository.AuditRequestLogRepository;
 import com.mongodb.util.JSON;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -55,6 +56,8 @@ public class LoggingFilter implements Filter {
 
     private static final String UNKNOWN_USER = "unknown";
 
+    private static final String CLIENT_REFERENCE_PARAM = "clientReference";
+
     @Autowired
     private AuditRequestLogRepository auditRequestLogRepository;
 
@@ -72,19 +75,29 @@ public class LoggingFilter implements Filter {
         HttpServletRequest httpServletRequest = (HttpServletRequest) request;
         HttpServletResponse httpServletResponse = (HttpServletResponse) response;
 
-        if (settings.checkIgnoreEndPoint(httpServletRequest.getRequestURI())) return;
-
         Map<String, String> requestMap = this.getTypesafeRequestMap(httpServletRequest);
         BufferedRequestWrapper bufferedRequest = new BufferedRequestWrapper(httpServletRequest);
         BufferedResponseWrapper bufferedResponse = new BufferedResponseWrapper(httpServletResponse);
         String apiUser = bufferedRequest.getHeader(API_USER_KEY);
+        apiUser = (StringUtils.isEmpty(apiUser) ? UNKNOWN_USER : apiUser);
+
         long startTime = System.currentTimeMillis();
         AuditRequestLog requestLog = new AuditRequestLog();
         requestLog.setClient(httpServletRequest.getRemoteAddr());
         requestLog.setEndpoint(httpServletRequest.getRequestURI());
         requestLog.setMethod(httpServletRequest.getMethod());
         requestLog.setParameter(requestMap.toString());
-        requestLog.setApiUser(StringUtils.isNotEmpty(apiUser) ? apiUser : UNKNOWN_USER);
+        requestLog.setApiUser(apiUser);
+        if(MapUtils.isNotEmpty(requestMap)) {
+            String clientReference = requestMap.get(CLIENT_REFERENCE_PARAM);
+            requestLog.setClientReference(StringUtils.isNotEmpty(clientReference) ? clientReference : StringUtils.EMPTY);
+        }
+
+        if(settings.checkIgnoreEndPoint(httpServletRequest.getRequestURI()) || settings.checkIgnoreApiUser(requestLog.getApiUser())) {
+            chain.doFilter(bufferedRequest, bufferedResponse);
+            return;
+        }
+
         requestLog.setRequestSize(httpServletRequest.getContentLengthLong());
         requestLog.setRequestContentType(httpServletRequest.getContentType());
 
@@ -101,6 +114,13 @@ public class LoggingFilter implements Filter {
             }
         } catch (MimeTypeParseException e) {
             LOGGER.error("Invalid MIME Type detected. Request MIME type=" + httpServletRequest.getContentType() + ". Response MIME Type=" + bufferedResponse.getContentType());
+        } finally {
+            LOGGER.info("requester=" + apiUser
+                    + ", timeTaken=" + (System.currentTimeMillis() - startTime)
+                    + ", endPoint=" + httpServletRequest.getRequestURI()
+                    + ", reqMethod=" + httpServletRequest.getMethod()
+                    + ", status=" + (httpServletResponse == null ? 0 : httpServletResponse.getStatus())
+                    + ", clientIp=" + httpServletRequest.getRemoteAddr());
         }
         requestLog.setResponseSize(bufferedResponse.getContent().length());
 
