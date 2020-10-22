@@ -17,6 +17,7 @@ import com.capitalone.dashboard.model.StoryIndicator;
 
 import com.capitalone.dashboard.repository.FeatureRepository;
 import com.capitalone.dashboard.repository.TestResultRepository;
+import com.capitalone.dashboard.request.ArtifactAuditRequest;
 import com.capitalone.dashboard.response.TestResultsAuditResponse;
 import com.capitalone.dashboard.status.TestResultAuditStatus;
 import org.apache.commons.collections.CollectionUtils;
@@ -87,6 +88,12 @@ public class RegressionTestResultEvaluator extends Evaluator<TestResultsAuditRes
         testItems.forEach(testItem -> testResultsAuditResponse.add(getRegressionTestResultAudit(dashboard, testItem)));
         return testResultsAuditResponse;
     }
+
+    @Override
+    public Collection<TestResultsAuditResponse> evaluateNextGen(ArtifactAuditRequest artifactAuditRequest, Dashboard dashboard, long beginDate, long endDate, Map<?, ?> data) throws AuditException {
+        return null;
+    }
+
 
     @Override
     public TestResultsAuditResponse evaluate(CollectorItem collectorItem, long beginDate, long endDate, Map<?, ?> data) {
@@ -338,7 +345,7 @@ public class RegressionTestResultEvaluator extends Evaluator<TestResultsAuditRes
                 testCapability.getTestSuites().parallelStream().mapToInt(TestSuite::getFailedTestCaseCount).sum()).sum();
         int testCaseSkippedCount = testCapabilities.stream().mapToInt(testCapability ->
                 testCapability.getTestSuites().parallelStream().mapToInt(TestSuite::getSkippedTestCaseCount).sum()).sum();
-        
+
         featureTestResultMap.put(TEST_CASE_TOTAL_COUNT, totalTestCaseCount);
         featureTestResultMap.put(TEST_CASE_SUCCESS_COUNT, testCaseSuccessCount);
         featureTestResultMap.put(TEST_CASE_FAILURE_COUNT, testCaseFailureCount);
@@ -388,7 +395,7 @@ public class RegressionTestResultEvaluator extends Evaluator<TestResultsAuditRes
      */
     private double getTestCasePassPercent(List<TestCapability> testCapabilities) {
         double testCaseSuccessCount = testCapabilities.stream().mapToDouble(testCapability ->
-             testCapability.getTestSuites().parallelStream().mapToDouble(TestSuite::getSuccessTestCaseCount).sum()
+                testCapability.getTestSuites().parallelStream().mapToDouble(TestSuite::getSuccessTestCaseCount).sum()
         ).sum();
         double totalTestCaseCount = testCapabilities.stream().mapToDouble(testCapability ->
                 testCapability.getTestSuites().parallelStream().mapToDouble(TestSuite::getTotalTestCaseCount).sum()
