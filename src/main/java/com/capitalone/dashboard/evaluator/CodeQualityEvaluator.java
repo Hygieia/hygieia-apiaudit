@@ -5,6 +5,7 @@ import com.capitalone.dashboard.model.AuditException;
 import com.capitalone.dashboard.model.CodeQuality;
 import com.capitalone.dashboard.model.CodeQualityMetric;
 import com.capitalone.dashboard.model.CodeQualityMetricStatus;
+import com.capitalone.dashboard.model.CodeQualityMetricType;
 import com.capitalone.dashboard.model.CollectorItem;
 import com.capitalone.dashboard.model.CollectorItemConfigHistory;
 import com.capitalone.dashboard.model.CollectorType;
@@ -12,15 +13,18 @@ import com.capitalone.dashboard.model.Dashboard;
 import com.capitalone.dashboard.repository.CodeQualityRepository;
 import com.capitalone.dashboard.repository.CollItemConfigHistoryRepository;
 import com.capitalone.dashboard.repository.CommitRepository;
+import com.capitalone.dashboard.request.ArtifactAuditRequest;
 import com.capitalone.dashboard.response.CodeQualityAuditResponse;
 import com.capitalone.dashboard.status.CodeQualityAuditStatus;
-import com.capitalone.dashboard.model.CodeQualityMetricType;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
-
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,17 +35,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.Iterator;
-
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 @Component
 public class CodeQualityEvaluator extends Evaluator<CodeQualityAuditResponse> {
@@ -73,6 +72,12 @@ public class CodeQualityEvaluator extends Evaluator<CodeQualityAuditResponse> {
 
         return codeQualityItems.stream().map(item -> evaluate(item, beginDate, endDate, repoData)).collect(Collectors.toList());
     }
+
+    @Override
+    public Collection<CodeQualityAuditResponse> evaluateNextGen(ArtifactAuditRequest artifactAuditRequest, Dashboard dashboard, long beginDate, long endDate, Map<?, ?> data) throws AuditException {
+        return null;
+    }
+
 
     @Override
     public CodeQualityAuditResponse evaluate(CollectorItem collectorItem, long beginDate, long endDate, Map<?, ?> data) {
@@ -128,15 +133,15 @@ public class CodeQualityEvaluator extends Evaluator<CodeQualityAuditResponse> {
                     // this applies for sonar 6.7 style data for quality_gate_details. Sets CODE_QUALITY_AUDIT_OK if Status is Ok/Warning
                     TypeReference<HashMap<String, Object>> typeRef = new TypeReference<HashMap<String, Object>>() {
                     };
-                    Map<String, String> values;
+                    Map<String, Object> values;
                     try {
-                        values = mapper.readValue((String) metric.getValue(), typeRef);
+                        values = mapper.readValue(metric.getValue(), typeRef);
                         if (MapUtils.isNotEmpty(values) && values.containsKey("level")) {
-                            String level = values.get("level");
+                            String level = values.get("level").toString();
                             codeQualityAuditResponse.addAuditStatus((level.equalsIgnoreCase("Ok") || level.equalsIgnoreCase("WARN"))? CodeQualityAuditStatus.CODE_QUALITY_AUDIT_OK : CodeQualityAuditStatus.CODE_QUALITY_AUDIT_FAIL);
                         }
 
-                        JSONObject qualityGateDetails = (JSONObject) new JSONParser().parse(metric.getValue().toString());
+                        JSONObject qualityGateDetails = (JSONObject) new JSONParser().parse(metric.getValue());
                         JSONArray conditions = (JSONArray) qualityGateDetails.get("conditions");
                         Iterator itr = conditions.iterator();
 
@@ -208,11 +213,13 @@ public class CodeQualityEvaluator extends Evaluator<CodeQualityAuditResponse> {
         detailsMissing.addAuditStatus(CodeQualityAuditStatus.CODE_QUALITY_DETAIL_MISSING);
         detailsMissing.setLastUpdated(codeQualityCollectorItem.getLastUpdated());
         detailsMissing.setAuditEntity(codeQualityCollectorItem.getOptions());
-        List<CodeQuality> codeQualities = codeQualityRepository.findByCollectorItemIdOrderByTimestampDesc(codeQualityCollectorItem.getId());
-        for(CodeQuality returnCodeQuality:codeQualities) {
-            detailsMissing.setUrl(returnCodeQuality.getUrl());
-            detailsMissing.setName(returnCodeQuality.getName());
-            detailsMissing.setLastExecutionTime(returnCodeQuality.getTimestamp());
+        Optional<CodeQuality> codeQualityOpt = Optional.ofNullable(
+                codeQualityRepository.findTop1ByCollectorItemIdOrderByTimestampDesc(codeQualityCollectorItem.getId()));
+        if (codeQualityOpt.isPresent()) {
+            CodeQuality codeQuality = codeQualityOpt.get();
+            detailsMissing.setUrl(codeQuality.getUrl());
+            detailsMissing.setName(codeQuality.getName());
+            detailsMissing.setLastExecutionTime(codeQuality.getTimestamp());
         }
         return detailsMissing;
     }

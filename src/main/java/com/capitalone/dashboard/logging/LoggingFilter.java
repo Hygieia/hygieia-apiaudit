@@ -1,15 +1,16 @@
 package com.capitalone.dashboard.logging;
 
 import com.capitalone.dashboard.ApiSettings;
-import com.capitalone.dashboard.model.RequestLog;
-import com.capitalone.dashboard.repository.RequestLogRepository;
+import com.capitalone.dashboard.model.AuditRequestLog;
+import com.capitalone.dashboard.repository.AuditRequestLogRepository;
 import com.mongodb.util.JSON;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.io.output.TeeOutputStream;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpMethod;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import javax.activation.MimeType;
@@ -37,24 +38,29 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 @Component
+@Order(1)
 public class LoggingFilter implements Filter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggingFilter.class);
 
+    private static final String API_USER_KEY = "apiUser";
+
+    private static final String UNKNOWN_USER = "unknown";
+
+    private static final String CLIENT_REFERENCE_PARAM = "clientReference";
+
     @Autowired
-    private RequestLogRepository requestLogRepository;
+    private AuditRequestLogRepository auditRequestLogRepository;
+
     @Autowired
     private ApiSettings settings;
 
@@ -65,78 +71,67 @@ public class LoggingFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        if (request == null) return;
-        long startTime = System.currentTimeMillis();
 
         HttpServletRequest httpServletRequest = (HttpServletRequest) request;
         HttpServletResponse httpServletResponse = (HttpServletResponse) response;
+
+        Map<String, String> requestMap = this.getTypesafeRequestMap(httpServletRequest);
+        BufferedRequestWrapper bufferedRequest = new BufferedRequestWrapper(httpServletRequest);
+        BufferedResponseWrapper bufferedResponse = new BufferedResponseWrapper(httpServletResponse);
+        String apiUser = bufferedRequest.getHeader(API_USER_KEY);
+        apiUser = (StringUtils.isEmpty(apiUser) ? UNKNOWN_USER : apiUser);
+
+        long startTime = System.currentTimeMillis();
+        AuditRequestLog requestLog = new AuditRequestLog();
+        requestLog.setClient(httpServletRequest.getRemoteAddr());
+        requestLog.setEndpoint(httpServletRequest.getRequestURI());
+        requestLog.setMethod(httpServletRequest.getMethod());
+        requestLog.setParameter(requestMap.toString());
+        requestLog.setApiUser(apiUser);
+        if(MapUtils.isNotEmpty(requestMap)) {
+            String clientReference = requestMap.get(CLIENT_REFERENCE_PARAM);
+            requestLog.setClientReference(StringUtils.isNotEmpty(clientReference) ? clientReference : StringUtils.EMPTY);
+        }
+
+        if(settings.checkIgnoreEndPoint(httpServletRequest.getRequestURI()) || settings.checkIgnoreApiUser(requestLog.getApiUser())) {
+            chain.doFilter(bufferedRequest, bufferedResponse);
+            return;
+        }
+
+        requestLog.setRequestSize(httpServletRequest.getContentLengthLong());
+        requestLog.setRequestContentType(httpServletRequest.getContentType());
+
+        chain.doFilter(bufferedRequest, bufferedResponse);
+        requestLog.setResponseContentType(httpServletResponse.getContentType());
         try {
-            if (Objects.equals(httpServletRequest.getMethod(), HttpMethod.PUT.toString()) ||
-                    (Objects.equals(httpServletRequest.getMethod(), HttpMethod.POST.toString())) ||
-                    (Objects.equals(httpServletRequest.getMethod(), HttpMethod.DELETE.toString()))) {
-                Map<String, String> requestMap = this.getTypesafeRequestMap(httpServletRequest);
-                BufferedRequestWrapper bufferedRequest = new BufferedRequestWrapper(httpServletRequest);
-                BufferedResponseWrapper bufferedResponse = new BufferedResponseWrapper(httpServletResponse);
 
-                RequestLog requestLog = new RequestLog();
-                requestLog.setClient(httpServletRequest.getRemoteAddr());
-                requestLog.setEndpoint(httpServletRequest.getRequestURI());
-                requestLog.setMethod(httpServletRequest.getMethod());
-                requestLog.setParameter(requestMap.toString());
-                requestLog.setRequestSize(httpServletRequest.getContentLengthLong());
-                requestLog.setRequestContentType(httpServletRequest.getContentType());
-
-                chain.doFilter(bufferedRequest, bufferedResponse);
-                requestLog.setResponseContentType(httpServletResponse.getContentType());
-                try {
-                    if ((httpServletRequest.getContentType() != null) && (new MimeType(httpServletRequest.getContentType()).match(new MimeType(APPLICATION_JSON_VALUE)))) {
-                        requestLog.setRequestBody(JSON.parse(bufferedRequest.getRequestBody()));
-                    }
-                    if ((bufferedResponse.getContentType() != null) && (new MimeType(bufferedResponse.getContentType()).match(new MimeType(APPLICATION_JSON_VALUE)))) {
-                        requestLog.setResponseBody(JSON.parse(bufferedResponse.getContent()));
-                    }
-                } catch (MimeTypeParseException e) {
-                    LOGGER.error("Invalid MIME Type detected. Request MIME type=" + httpServletRequest.getContentType() + ". Response MIME Type=" + bufferedResponse.getContentType());
-                }
-                requestLog.setResponseSize(bufferedResponse.getContent().length());
-                requestLog.setResponseCode(bufferedResponse.getStatus());
-                requestLog.setTimestamp(System.currentTimeMillis());
-                try {
-                    requestLogRepository.save(requestLog);
-                } catch (RuntimeException re) {
-                    LOGGER.info(requestLog.toString());
-                }
-
-            } else {
-                if (settings.isCorsEnabled()) {
-
-                    String clientOrigin = httpServletRequest.getHeader("Origin");
-
-                    String corsWhitelist = settings.getCorsWhitelist();
-                    if (!StringUtils.isEmpty(corsWhitelist)) {
-                        List<String> incomingURLs = Arrays.asList(corsWhitelist.trim().split(","));
-
-                        if (incomingURLs.contains(clientOrigin)) {
-                            //adds headers to response to allow CORS
-                            httpServletResponse.addHeader("Access-Control-Allow-Origin", clientOrigin);
-                            httpServletResponse.addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
-                            httpServletResponse.addHeader("Access-Control-Allow-Headers", "Content-Type");
-                            httpServletResponse.addHeader("Access-Control-Max-Age", "1");
-                        }
-                    }
-
-                }
-                chain.doFilter(request, response);
+            if ((httpServletRequest.getContentType() != null) && (new MimeType(httpServletRequest.getContentType()).match(new MimeType(APPLICATION_JSON_VALUE)))) {
+                requestLog.setRequestBody(JSON.parse(bufferedRequest.getRequestBody()));
             }
+
+            if ((bufferedResponse.getContentType() != null) && (new MimeType(bufferedResponse.getContentType()).match(new MimeType(APPLICATION_JSON_VALUE)))) {
+                requestLog.setResponseBody(JSON.parse(bufferedResponse.getContent()));
+            }
+        } catch (MimeTypeParseException e) {
+            LOGGER.error("Invalid MIME Type detected. Request MIME type=" + httpServletRequest.getContentType() + ". Response MIME Type=" + bufferedResponse.getContentType());
         } finally {
-            String requester = httpServletRequest.getHeader("apiUser");
-            requester = (StringUtils.isEmpty(requester) ? "UNKNOWN_USER" : requester);
-            LOGGER.info("requester=" + requester
+            LOGGER.info("requester=" + apiUser
                     + ", timeTaken=" + (System.currentTimeMillis() - startTime)
                     + ", endPoint=" + httpServletRequest.getRequestURI()
                     + ", reqMethod=" + httpServletRequest.getMethod()
                     + ", status=" + (httpServletResponse == null ? 0 : httpServletResponse.getStatus())
                     + ", clientIp=" + httpServletRequest.getRemoteAddr());
+        }
+        requestLog.setResponseSize(bufferedResponse.getContent().length());
+
+        requestLog.setResponseCode(bufferedResponse.getStatus());
+        long endTime = System.currentTimeMillis();
+        requestLog.setResponseTime(endTime - startTime);
+        requestLog.setTimestamp(endTime);
+        try {
+            auditRequestLogRepository.save(requestLog);
+        } catch (RuntimeException re) {
+            LOGGER.error("Encountered exception while saving request log - " + requestLog.toString(), re);
         }
     }
 
@@ -173,7 +168,7 @@ public class LoggingFilter implements Filter {
             // Read InputStream and store its content in a buffer.
 
             this.baos = new ByteArrayOutputStream();
-            byte buf[] = new byte[1024];
+            byte[] buf = new byte[1024];
             int letti;
             try (InputStream is = req.getInputStream()) {
                 while ((letti = is.read(buf)) > 0) {
@@ -505,4 +500,3 @@ public class LoggingFilter implements Filter {
     }
 
 }
-

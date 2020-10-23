@@ -16,6 +16,7 @@ import com.capitalone.dashboard.model.ServiceAccount;
 import com.capitalone.dashboard.model.AuditException;
 import com.capitalone.dashboard.repository.CommitRepository;
 import com.capitalone.dashboard.repository.GitRequestRepository;
+import com.capitalone.dashboard.request.ArtifactAuditRequest;
 import com.capitalone.dashboard.response.CodeReviewAuditResponseV2;
 import com.capitalone.dashboard.status.CodeReviewAuditStatus;
 import com.capitalone.dashboard.util.GitHubParsedUrl;
@@ -41,19 +42,19 @@ import java.util.stream.Stream;
 
 @Component
 public class CodeReviewEvaluator extends Evaluator<CodeReviewAuditResponseV2> {
-        private final CommitRepository commitRepository;
-        private final GitRequestRepository gitRequestRepository;
-        private final CollectorRepository collectorRepository;
-        private final ServiceAccountRepository serviceAccountRepository;
+    private final CommitRepository commitRepository;
+    private final GitRequestRepository gitRequestRepository;
+    private final CollectorRepository collectorRepository;
+    private final ServiceAccountRepository serviceAccountRepository;
 
-        protected ApiSettings settings;
-        private static final String BRANCH = "branch";
-        private static final String REPO_URL = "url";
+    protected ApiSettings settings;
+    private static final String BRANCH = "branch";
+    private static final String REPO_URL = "url";
 
     @Autowired
     public CodeReviewEvaluator(CommitRepository commitRepository, GitRequestRepository gitRequestRepository,
-                                CollectorRepository collectorRepository, ServiceAccountRepository serviceAccountRepository,
-                                ApiSettings settings) {
+                               CollectorRepository collectorRepository, ServiceAccountRepository serviceAccountRepository,
+                               ApiSettings settings) {
         this.commitRepository = commitRepository;
         this.gitRequestRepository = gitRequestRepository;
         this.collectorRepository = collectorRepository;
@@ -104,6 +105,12 @@ public class CodeReviewEvaluator extends Evaluator<CodeReviewAuditResponseV2> {
         });
         return responseV2s;
     }
+
+    @Override
+    public Collection<CodeReviewAuditResponseV2> evaluateNextGen(ArtifactAuditRequest artifactAuditRequest, Dashboard dashboard, long beginDate, long endDate, Map<?, ?> data) throws AuditException {
+        return null;
+    }
+
 
     @Override
     public CodeReviewAuditResponseV2 evaluate(CollectorItem collectorItem, long beginDate, long endDate, Map<?, ?> data) {
@@ -252,15 +259,15 @@ public class CodeReviewEvaluator extends Evaluator<CodeReviewAuditResponseV2> {
     protected void auditPullRequest(CollectorItem repoItem, GitRequest pr, List<Commit> commits,
                                     List<String> allPrCommitShas, CodeReviewAuditResponseV2 reviewAuditResponseV2) {
         Commit mergeCommit = Optional.ofNullable(commits)
-                                .orElseGet(Collections::emptyList).stream()
-                                .filter(c -> Objects.equals(c.getScmRevisionNumber(), pr.getScmRevisionNumber()))
-                                .findFirst().orElse(null);
+                .orElseGet(Collections::emptyList).stream()
+                .filter(c -> Objects.equals(c.getScmRevisionNumber(), pr.getScmRevisionNumber()))
+                .findFirst().orElse(null);
 
         if (mergeCommit == null) {
             mergeCommit = Optional.ofNullable(commits)
-                            .orElseGet(Collections::emptyList).stream()
-                            .filter(c -> Objects.equals(c.getScmRevisionNumber(), pr.getScmMergeEventRevisionNumber()))
-                            .findFirst().orElse(null);
+                    .orElseGet(Collections::emptyList).stream()
+                    .filter(c -> Objects.equals(c.getScmRevisionNumber(), pr.getScmMergeEventRevisionNumber()))
+                    .findFirst().orElse(null);
         }
 
         CodeReviewAuditResponseV2.PullRequestAudit pullRequestAudit = new CodeReviewAuditResponseV2.PullRequestAudit();
@@ -300,7 +307,7 @@ public class CodeReviewEvaluator extends Evaluator<CodeReviewAuditResponseV2> {
         if (CollectionUtils.isEmpty(commitsRelatedToPr)) { return; }
         List <Commit> commitsAfterPrMerge = commitsRelatedToPr.stream().filter(Objects::nonNull).filter(commit -> (
                 commit.getScmCommitTimestamp() > pr.getMergedAt()
-                )).collect(Collectors.toList());
+        )).collect(Collectors.toList());
         if (CollectionUtils.isEmpty(commitsAfterPrMerge)) { return; }
 
         pullRequestAudit.addAuditStatus(CodeReviewAuditStatus.COMMIT_AFTER_PR_MERGE);
@@ -325,7 +332,7 @@ public class CodeReviewEvaluator extends Evaluator<CodeReviewAuditResponseV2> {
         long lastReviewTimestamp = reviewsRelatedToPr.get(reviewsRelatedToPr.size() - 1).getUpdatedAt();
         List<Commit> commitsAfterPrReviews = commitsRelatedToPr.stream().filter(Objects::nonNull).filter(commit -> (
                 commit.getScmCommitTimestamp() > lastReviewTimestamp
-                && !isMergeCommitFromTargetBranch(commit, pr))
+                        && !isMergeCommitFromTargetBranch(commit, pr))
         ).collect(Collectors.toList());
 
         if(CollectionUtils.isEmpty(commitsAfterPrReviews)) { return; }
@@ -351,9 +358,9 @@ public class CodeReviewEvaluator extends Evaluator<CodeReviewAuditResponseV2> {
     protected boolean existsApprovedPROnAnotherBranch(CollectorItem repoItem, Commit commit, List<CollectorItem> collectorItemList,
                                                       long beginDt, long endDt) {
         CollectorItem collectorItem = Optional.ofNullable(collectorItemList)
-                                        .orElseGet(Collections::emptyList).stream()
-                                        .filter(ci -> existsApprovedPRForCollectorItem(repoItem, commit, ci, beginDt, endDt))
-                                        .findFirst().orElse(null);
+                .orElseGet(Collections::emptyList).stream()
+                .filter(ci -> existsApprovedPRForCollectorItem(repoItem, commit, ci, beginDt, endDt))
+                .findFirst().orElse(null);
         return (collectorItem != null);
     }
 
@@ -405,9 +412,9 @@ public class CodeReviewEvaluator extends Evaluator<CodeReviewAuditResponseV2> {
         // So, will find the matching commit based on the criteria below for "Merge Only" case.
         Commit matchingCommit
                 = Optional.ofNullable(commitsRelatedToPr)
-                    .orElseGet(Collections::emptyList).stream()
-                    .filter(commitRelatedToPr -> checkIfCommitsMatch(commitRelatedToPr, commitToBeFound))
-                    .findFirst().orElse(null);
+                .orElseGet(Collections::emptyList).stream()
+                .filter(commitRelatedToPr -> checkIfCommitsMatch(commitRelatedToPr, commitToBeFound))
+                .findFirst().orElse(null);
         // For "Squash and Merge", or a "Rebase and Merge":
         // The merged commit will not be part of the commits in the PR.
         // The PR will only have the original commits when the PR was opened.
@@ -416,10 +423,10 @@ public class CodeReviewEvaluator extends Evaluator<CodeReviewAuditResponseV2> {
             String pullNumber = mergedPullRequest.getNumber();
             matchingCommit
                     = Optional.ofNullable(commitsOnTheRepo)
-                        .orElseGet(Collections::emptyList).stream()
-                        .filter(commitOnRepo -> Objects.equals(pullNumber, commitToBeFound.getPullNumber())
+                    .orElseGet(Collections::emptyList).stream()
+                    .filter(commitOnRepo -> Objects.equals(pullNumber, commitToBeFound.getPullNumber())
                             && checkIfCommitsMatch(commitOnRepo, commitToBeFound))
-                        .findFirst().orElse(null);
+                    .findFirst().orElse(null);
         }
 
         return matchingCommit;
@@ -436,11 +443,11 @@ public class CodeReviewEvaluator extends Evaluator<CodeReviewAuditResponseV2> {
         Stream<String> combinedStream
                 = Stream.of(commit.getFilesAdded(), commit.getFilesModified(),commit.getFilesRemoved()).filter(Objects::nonNull).flatMap(Collection::stream);
         Collection<String> collectionCombined = combinedStream.collect(Collectors.toList());
-       if (CommonCodeReview.checkForServiceAccount(commit.getScmAuthorLDAPDN(), settings,getAllServiceAccounts(),commit.getScmAuthor(),collectionCombined.stream().collect(Collectors.toList()),true,reviewAuditResponseV2)) {
+        if (CommonCodeReview.checkForServiceAccount(commit.getScmAuthorLDAPDN(), settings,getAllServiceAccounts(),commit.getScmAuthor(),collectionCombined.stream().collect(Collectors.toList()),true,reviewAuditResponseV2)) {
             reviewAuditResponseV2.addAuditStatus(CodeReviewAuditStatus.COMMITAUTHOR_EQ_SERVICEACCOUNT);
             auditIncrementVersionTag(reviewAuditResponseV2, commit, CodeReviewAuditStatus.DIRECT_COMMIT_NONCODE_CHANGE_SERVICE_ACCOUNT);
         } else  if (StringUtils.isBlank(commit.getScmAuthorLDAPDN())) {
-           auditIncrementVersionTag(reviewAuditResponseV2, commit, CodeReviewAuditStatus.DIRECT_COMMIT_NONCODE_CHANGE);
+            auditIncrementVersionTag(reviewAuditResponseV2, commit, CodeReviewAuditStatus.DIRECT_COMMIT_NONCODE_CHANGE);
         }else {
             auditIncrementVersionTag(reviewAuditResponseV2, commit, CodeReviewAuditStatus.DIRECT_COMMIT_NONCODE_CHANGE_USER_ACCOUNT);
         }
@@ -450,7 +457,7 @@ public class CodeReviewEvaluator extends Evaluator<CodeReviewAuditResponseV2> {
         if (CommonCodeReview.matchIncrementVersionTag(commit.getScmCommitLog(), settings)) {
             reviewAuditResponseV2.addAuditStatus(directCommitIncrementVersionTagStatus);
         } else {
-           addDirectCommitsToBase(reviewAuditResponseV2,commit);
+            addDirectCommitsToBase(reviewAuditResponseV2,commit);
         }
     }
 
@@ -458,10 +465,10 @@ public class CodeReviewEvaluator extends Evaluator<CodeReviewAuditResponseV2> {
         if(commit.isFirstEverCommit()){
             reviewAuditResponseV2.addAuditStatus(CodeReviewAuditStatus.DIRECT_COMMITS_TO_BASE_FIRST_COMMIT );
         }else if(StringUtils.isEmpty(commit.getPullNumber())){
-                reviewAuditResponseV2.addAuditStatus(CodeReviewAuditStatus.DIRECT_COMMITS_TO_BASE);
-                reviewAuditResponseV2.addDirectCommitsToBase(commit);
+            reviewAuditResponseV2.addAuditStatus(CodeReviewAuditStatus.DIRECT_COMMITS_TO_BASE);
+            reviewAuditResponseV2.addDirectCommitsToBase(commit);
         }
-   }
+    }
 
     public Map<String,String> getAllServiceAccounts(){
         List<ServiceAccount> serviceAccounts = (List<ServiceAccount>) serviceAccountRepository.findAll();
